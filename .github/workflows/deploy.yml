@@ -38,11 +38,11 @@ jobs:
             --window-pos 200 120 \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "PurgeMac.app" 200 190 \
-            --hide-extension "PurgeMac.app" \
+            --icon "purgemac.app" 200 190 \
+            --hide-extension "purgemac.app" \
             --app-drop-link 600 185 \
             "../../../../release_artifact/purgemac.dmg" \
-            "PurgeMac.app"
+            "purgemac.app"
 
       - name: Upload to Cloudflare R2
         uses: ryand56/r2-upload-action@latest
