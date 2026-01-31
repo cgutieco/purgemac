@@ -2,6 +2,8 @@ import os
 import shutil
 import subprocess
 import sys
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 # --- Configuration ---
 PROJECT_NAME = "purgemac"
@@ -11,6 +13,12 @@ DMG_NAME = "purgemac.dmg"
 BUILD_DIR = os.path.abspath("build")
 # Output DMG to the root of the project
 OUTPUT_DMG_PATH = os.path.abspath(DMG_NAME)
+
+# R2 Configuration (Load from Environment Variables for security)
+R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.getenv("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 def run_command(command, cwd=None):
     """Runs a shell command and raises an error if it fails."""
@@ -27,6 +35,11 @@ def check_dependencies():
         sys.exit(1)
     if not shutil.which("create-dmg"):
         print("❌ Error: create-dmg not found. Install it via 'brew install create-dmg'.")
+        sys.exit(1)
+    try:
+        import boto3
+    except ImportError:
+        print("❌ Error: boto3 not found. Install it via 'pip install boto3'.")
         sys.exit(1)
 
 def build_app():
@@ -86,10 +99,41 @@ def create_dmg():
         print("❌ Error: DMG creation failed.")
         sys.exit(1)
 
+def upload_to_r2():
+    """Uploads the DMG to Cloudflare R2."""
+    print("\n☁️  Uploading to Cloudflare R2...")
+    
+    if not all([R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME]):
+        print("❌ Error: Missing R2 environment variables.")
+        print("Please export R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME.")
+        sys.exit(1)
+
+    endpoint_url = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+    
+    s3 = boto3.client('s3',
+        endpoint_url=endpoint_url,
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY
+    )
+
+    try:
+        print(f"Uploading {OUTPUT_DMG_PATH} to bucket {R2_BUCKET_NAME}...")
+        s3.upload_file(
+            OUTPUT_DMG_PATH, 
+            R2_BUCKET_NAME, 
+            DMG_NAME,
+            ExtraArgs={'ContentType': 'application/x-diskcopy'}
+        )
+        print(f"✅ Upload successful!")
+    except Exception as e:
+        print(f"❌ Upload failed: {e}")
+        sys.exit(1)
+
 def main():
     check_dependencies()
     build_app()
     create_dmg()
+    upload_to_r2()
 
 if __name__ == "__main__":
     main()

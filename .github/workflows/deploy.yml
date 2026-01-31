@@ -15,22 +15,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: brew install create-dmg
-
-      - name: Run Build Script
-        run: python3 scripts/deploy.py
-
-      - name: Prepare Upload
         run: |
-          mkdir -p deploy_dist
-          mv purgemac.dmg deploy_dist/
+          brew install create-dmg
+          pip3 install boto3
 
-      - name: Upload to Cloudflare R2
-        uses: ryand56/r2-upload-action@latest
-        with:
-          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
-          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: deploy_dist
-          destination-dir: ./
+      - name: Run Build and Deploy Script
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: python3 scripts/deploy.py
