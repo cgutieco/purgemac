@@ -14,35 +14,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build macOS App
-        # Building without signing to generate the .app
-        run: |
-          xcodebuild clean build \
-            -project purgemac.xcodeproj \
-            -scheme PurgeMac \
-            -configuration Release \
-            -derivedDataPath build \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=YES
+      - name: Install dependencies
+        run: brew install create-dmg
 
-      - name: Create DMG
+      - name: Run Build Script
+        run: python3 scripts/deploy.py
+
+      - name: Prepare Upload
         run: |
-          brew install create-dmg
-          mkdir -p release_artifact
-          cd build/Build/Products/Release
-          
-          # Create DMG with installer window
-          create-dmg \
-            --volname "PurgeMac Installer" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 100 \
-            --icon "purgemac.app" 200 190 \
-            --hide-extension "purgemac.app" \
-            --app-drop-link 600 185 \
-            "../../../../release_artifact/purgemac.dmg" \
-            "purgemac.app"
+          mkdir -p deploy_dist
+          mv purgemac.dmg deploy_dist/
 
       - name: Upload to Cloudflare R2
         uses: ryand56/r2-upload-action@latest
@@ -51,5 +32,5 @@ jobs:
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
           r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           r2-bucket: ${{ secrets.R2_BUCKET_NAME }}
-          source-dir: release_artifact
+          source-dir: deploy_dist
           destination-dir: ./
