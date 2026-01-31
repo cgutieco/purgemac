@@ -266,29 +266,37 @@ final class ScannerViewModel: ObservableObject {
     
     func toggleArtifact(_ artifact: AppArtifact) {
         if let index = artifacts.firstIndex(where: { $0.id == artifact.id }) {
-            artifacts[index].isSelected.toggle()
-            // Forzar notificación de cambio
-            objectWillChange.send()
+            if !artifacts[index].isProtected {
+                artifacts[index].isSelected.toggle()
+                // Forzar notificación de cambio
+                objectWillChange.send()
+            }
         }
     }
     
     func toggleArtifactById(_ id: UUID) {
         if let index = artifacts.firstIndex(where: { $0.id == id }) {
-            artifacts[index].isSelected.toggle()
-            objectWillChange.send()
+            if !artifacts[index].isProtected {
+                artifacts[index].isSelected.toggle()
+                objectWillChange.send()
+            }
         }
     }
     
     func setArtifactSelection(_ id: UUID, selected: Bool) {
         if let index = artifacts.firstIndex(where: { $0.id == id }) {
-            artifacts[index].isSelected = selected
-            objectWillChange.send()
+            if !artifacts[index].isProtected {
+                artifacts[index].isSelected = selected
+                objectWillChange.send()
+            }
         }
     }
     
     func selectAll() {
         for index in artifacts.indices {
-            artifacts[index].isSelected = true
+            if !artifacts[index].isProtected {
+                artifacts[index].isSelected = true
+            }
         }
         objectWillChange.send()
     }
@@ -302,7 +310,9 @@ final class ScannerViewModel: ObservableObject {
     
     func selectCategory(_ category: ArtifactCategory) {
         for index in artifacts.indices where artifacts[index].category == category {
-            artifacts[index].isSelected = true
+            if !artifacts[index].isProtected {
+                artifacts[index].isSelected = true
+            }
         }
         objectWillChange.send()
     }

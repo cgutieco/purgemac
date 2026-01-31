@@ -528,19 +528,46 @@ private struct FileRowWithCallback: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: artifact.isSelected ? "checkmark.square.fill" : "square")
-                .font(.system(size: 18))
-                .foregroundStyle(artifact.isSelected ? Color.accentColor : Color.secondary)
+            if artifact.isProtected {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(Color.secondary.opacity(0.5), lineWidth: 1)
+                        .background(RoundedRectangle(cornerRadius: 4).fill(Color.secondary.opacity(0.1)))
+                        .frame(width: 18, height: 18)
+                    
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Image(systemName: artifact.isSelected ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 18))
+                    .foregroundStyle(artifact.isSelected ? Color.accentColor : Color.secondary)
+            }
             
             IconAtom.forCategory(artifact.category, size: .medium)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(artifact.displayName)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                HStack(spacing: 8) {
+                    Text(artifact.displayName)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    if artifact.isProtected {
+                        Text("Protected System")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.cyan)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(Color.cyan, lineWidth: 1)
+                            )
+                    }
+                }
                 
                 Text(artifact.fullPath)
                     .font(.caption)
@@ -566,7 +593,9 @@ private struct FileRowWithCallback: View {
             }
         }
         .onTapGesture {
-            onToggle()
+            if !artifact.isProtected {
+                onToggle()
+            }
         }
     }
 }
