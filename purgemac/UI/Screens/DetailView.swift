@@ -19,20 +19,23 @@ struct DetailView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
-            DetailToolbar(
-                appName: viewModel.scannedApp?.displayName ?? "App",
-                onBack: { viewModel.reset() },
-                onRescan: {
-                    Task {
-                        await viewModel.rescan()
+            // Header: Toolbar
+            VStack(spacing: 0) {
+                DetailToolbar(
+                    appName: viewModel.scannedApp?.displayName ?? "App",
+                    onBack: { viewModel.reset() },
+                    onRescan: {
+                        Task {
+                            await viewModel.rescan()
+                        }
                     }
-                }
-            )
+                )
+                Divider()
+            }
+            .background(.ultraThinMaterial)
+            .zIndex(1) // Ensure header stays on top visually if needed
             
-            Divider()
-            
-            // Main content
+            // Body: Split View (Takes all remaining space)
             HSplitView {
                 // Sidebar
                 DetailSidebar(
@@ -43,6 +46,7 @@ struct DetailView: View {
                     artifacts: viewModel.artifacts
                 )
                 .frame(minWidth: 180, idealWidth: 200, maxWidth: 250)
+                .frame(maxHeight: .infinity) // Ensure sidebar takes full height
                 
                 // File list
                 VStack(spacing: 0) {
@@ -76,22 +80,27 @@ struct DetailView: View {
                         }
                     )
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure file list expands
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure HSplitView expands in the VStack
             
-            Divider()
-            
-            // Bottom control panel
-            DetailControlPanel(
-                selectedCount: viewModel.selectedCount,
-                selectedSize: viewModel.selectedSize,
-                canDelete: viewModel.canDelete,
-                onSelectAll: { viewModel.selectAll() },
-                onDeselectAll: { viewModel.deselectAll() },
-                onDelete: { permanently in
-                    deletePermenantly = permanently
-                    showDeleteConfirmation = true
-                }
-            )
+            // Footer: Control Panel
+            VStack(spacing: 0) {
+                Divider()
+                DetailControlPanel(
+                    selectedCount: viewModel.selectedCount,
+                    selectedSize: viewModel.selectedSize,
+                    canDelete: viewModel.canDelete,
+                    onSelectAll: { viewModel.selectAll() },
+                    onDeselectAll: { viewModel.deselectAll() },
+                    onDelete: { permanently in
+                        deletePermenantly = permanently
+                        showDeleteConfirmation = true
+                    }
+                )
+            }
+            .background(.ultraThinMaterial)
+            .zIndex(1) // Ensure footer stays on top visually if needed
         }
         .confirmationDialog(
             L10n.delete,
