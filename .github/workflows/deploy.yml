@@ -14,15 +14,99 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies and Run
+      - name: Install dependencies
+        run: |
+          brew install create-dmg
+          # Create venv for python packages (PEP 668 compliance)
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install boto3
+
+      - name: Build App
+        run: |
+          # Clean previous builds
+          rm -rf build release_artifact
+          
+          # Build Archive
+          xcodebuild clean build \
+            -project purgemac.xcodeproj \
+            -scheme PurgeMac \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES
+
+      - name: Package DMG
+        run: |
+          # Define paths
+          APP_PATH="build/Build/Products/Release/purgemac.app"
+          DMG_NAME="purgemac.dmg"
+          
+          # Verify App exists
+          if [ ! -d "$APP_PATH" ]; then
+            echo "❌ Error: App not found at $APP_PATH"
+            exit 1
+          fi
+          
+          # Force Ad-Hoc Signing (Double check)
+          codesign --force --deep -s - "$APP_PATH"
+          
+          # Create DMG
+          create-dmg \
+            --volname "PurgeMac Installer" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "purgemac.app" 175 120 \
+            --hide-extension "purgemac.app" \
+            --app-drop-link 425 120 \
+            --no-internet-enable \
+            "$DMG_NAME" \
+            "$APP_PATH"
+
+      - name: Upload to R2
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
         run: |
-          brew install create-dmg
-          python3 -m venv venv
+          # Activate venv to get boto3
           source venv/bin/activate
-          pip install boto3
-          python3 scripts/deploy.py
+          
+          # Run inline python script
+          python3 -c "
+          import boto3, os, sys
+          
+          account_id = os.getenv('R2_ACCOUNT_ID')
+          access_key = os.getenv('R2_ACCESS_KEY_ID')
+          secret_key = os.getenv('R2_SECRET_ACCESS_KEY')
+          bucket_name = os.getenv('R2_BUCKET_NAME')
+          file_name = 'purgemac.dmg'
+          
+          if not all([account_id, access_key, secret_key, bucket_name]):
+              print('❌ Error: Missing R2 secrets')
+              sys.exit(1)
+              
+          print(f'☁️ Uploading {file_name} to {bucket_name}...')
+          
+          s3 = boto3.client('s3',
+              endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
+              aws_access_key_id=access_key,
+              aws_secret_access_key=secret_key
+          )
+          
+          try:
+              with open(file_name, 'rb') as f:
+                  s3.upload_fileobj(
+                      f, 
+                      bucket_name, 
+                      file_name,
+                      ExtraArgs={'ContentType': 'application/x-diskcopy'}
+                  )
+              print('✅ Upload successful!')
+          except Exception as e:
+              print(f'❌ Upload failed: {e}')
+              sys.exit(1)
+          "
