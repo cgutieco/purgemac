@@ -26,12 +26,12 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Prepare Release Artifact
+      - name: Create DMG
         run: |
           mkdir -p release_artifact
           cd build/Build/Products/Release
-          # Zip the app bundle preserving symlinks and permissions
-          zip -r ../../../../release_artifact/purgemac.zip purgemac.app
+          # Create DMG
+          hdiutil create -volname "PurgeMac" -srcfolder purgemac.app -ov -format UDZO ../../../../release_artifact/purgemac.dmg
 
       - name: Upload to Cloudflare R2
         uses: ryand56/r2-upload-action@latest
