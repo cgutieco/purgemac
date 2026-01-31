@@ -22,16 +22,27 @@ jobs:
             -scheme PurgeMac \
             -configuration Release \
             -derivedDataPath build \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=YES
 
       - name: Create DMG
         run: |
+          brew install create-dmg
           mkdir -p release_artifact
           cd build/Build/Products/Release
-          # Create DMG
-          hdiutil create -volname "PurgeMac" -srcfolder purgemac.app -ov -format UDZO ../../../../release_artifact/purgemac.dmg
+          
+          # Create DMG with installer window
+          create-dmg \
+            --volname "PurgeMac Installer" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "PurgeMac.app" 200 190 \
+            --hide-extension "PurgeMac.app" \
+            --app-drop-link 600 185 \
+            "../../../../release_artifact/purgemac.dmg" \
+            "PurgeMac.app"
 
       - name: Upload to Cloudflare R2
         uses: ryand56/r2-upload-action@latest
