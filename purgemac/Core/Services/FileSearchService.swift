@@ -175,7 +175,28 @@ actor FileSearchService {
             let parts = bundleId.split(separator: ".")
             for part in parts {
                 let partString = String(part)
-                let genericTerms = ["com", "org", "net", "io", "app", "macos", "mac", "ios", "desktop", "application"]
+                // Lista expandida de términos genéricos para evitar falsos positivos
+                let genericTerms: Set<String> = [
+                    // TLDs / Common
+                    "com", "org", "net", "io", "app", "inc", "ltd", "corp",
+                    
+                    // Vendors
+                    "apple", "google", "microsoft", "adobe", "amazon", "meta", "facebook",
+                    "oracle", "ibm", "intel", "nvidia", "cisco", "sap",
+                    
+                    // Tech / System
+                    "macos", "mac", "ios", "watchos", "tvos", "osx", "darwin",
+                    "cocoa", "carbon", "qt", "electron", "flutter", "react",
+                    "xcode", "swift", "obj-c", "objc",
+                    
+                    // Components
+                    "application", "desktop", "mobile", "system", "core", "base",
+                    "client", "service", "daemon", "agent", "helper", "tool",
+                    "driver", "plugin", "extension", "library", "framework", "suite",
+                    "soft", "software", "update", "updater", "installer", "main", "support",
+                    "security", "network", "cloud", "sync", "data", "backup", "restore"
+                ]
+                
                 if !genericTerms.contains(partString.lowercased()) && partString.count > 2 {
                     terms.insert(partString)
                     terms.insert(partString.lowercased())
@@ -305,20 +326,13 @@ actor FileSearchService {
     }
     
     private func isProtected(at url: URL) -> Bool {
-        // 1. Check if it's in System folders
-        if url.path.hasPrefix("/System/") {
-            return true
-        }
+        // 1. Resolve symlinks to find the true path
+        let resolvedURL = url.resolvingSymlinksInPath()
         
-        // 2. Check for Read-Only permissions (SIP/System protections)
-        // If we can't write to it, we can't delete it safely/easily
-        do {
-            let values = try url.resourceValues(forKeys: [.isWritableKey])
-            if let isWritable = values.isWritable {
-                 return !isWritable
-            }
-        } catch {
-            print("⚠️ Error checking permissions for \(url.lastPathComponent): \(error)")
+        // 2. Check if the resolved path is in System folders
+        // This handles cases like /Applications/Safari.app -> /System/Cryptexes/...
+        if resolvedURL.path.hasPrefix("/System/") {
+            return true
         }
         
         return false
