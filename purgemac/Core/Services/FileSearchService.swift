@@ -89,7 +89,8 @@ actor FileSearchService {
             path: appURL,
             category: .application,
             sizeBytes: appSize,
-            isSelected: true
+            isSelected: true,
+            isProtected: isProtected(at: appURL)
         )
         artifacts.append(appArtifact)
         
@@ -232,7 +233,8 @@ actor FileSearchService {
                         path: itemURL,
                         category: category,
                         sizeBytes: size,
-                        isSelected: true
+                        isSelected: true,
+                        isProtected: self.isProtected(at: itemURL)
                     )
                     
                     artifacts.append(artifact)
@@ -262,7 +264,8 @@ actor FileSearchService {
                 path: exactPlistPath,
                 category: .preferences,
                 sizeBytes: size,
-                isSelected: true
+                isSelected: true,
+                isProtected: self.isProtected(at: exactPlistPath)
             )
             artifacts.append(artifact)
             print("  ✅ Found plist: \(bundleId).plist")
@@ -287,7 +290,8 @@ actor FileSearchService {
                         path: file,
                         category: .preferences,
                         sizeBytes: size,
-                        isSelected: true
+                        isSelected: true,
+                        isProtected: self.isProtected(at: file)
                     )
                     artifacts.append(artifact)
                     print("  ✅ Found related plist: \(file.lastPathComponent)")
@@ -300,6 +304,26 @@ actor FileSearchService {
         return artifacts
     }
     
+    private func isProtected(at url: URL) -> Bool {
+        // 1. Check if it's in System folders
+        if url.path.hasPrefix("/System/") {
+            return true
+        }
+        
+        // 2. Check for Read-Only permissions (SIP/System protections)
+        // If we can't write to it, we can't delete it safely/easily
+        do {
+            let values = try url.resourceValues(forKeys: [.isWritableKey])
+            if let isWritable = values.isWritable {
+                 return !isWritable
+            }
+        } catch {
+            print("⚠️ Error checking permissions for \(url.lastPathComponent): \(error)")
+        }
+        
+        return false
+    }
+
     func calculateSize(at url: URL) async -> Int64 {
         var totalSize: Int64 = 0
         let fm = FileManager.default

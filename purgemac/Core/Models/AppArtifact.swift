@@ -82,20 +82,23 @@ struct AppArtifact: Identifiable, Hashable, Sendable {
     let sizeBytes: Int64
     let displayName: String
     var isSelected: Bool
+    let isProtected: Bool
     
     nonisolated init(
         id: UUID = UUID(),
         path: URL,
         category: ArtifactCategory,
         sizeBytes: Int64,
-        isSelected: Bool = true
+        isSelected: Bool = true,
+        isProtected: Bool = false
     ) {
         self.id = id
         self.path = path
         self.category = category
         self.sizeBytes = sizeBytes
         self.displayName = path.pathComponents.last ?? ""
-        self.isSelected = isSelected
+        self.isProtected = isProtected
+        self.isSelected = isProtected ? false : isSelected
     }
     
     // MARK: - Computed Properties
