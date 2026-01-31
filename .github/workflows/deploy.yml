@@ -19,7 +19,7 @@ jobs:
         run: |
           xcodebuild clean build \
             -project purgemac.xcodeproj \
-            -scheme purgemac \
+            -scheme PurgeMac \
             -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
