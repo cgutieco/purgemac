@@ -29,6 +29,7 @@ Cuando eliminas una aplicación en macOS arrastrándola a la papelera, solo se e
 ### Implementadas
 
 - 🎯 **Escaneo profundo**: Detecta archivos residuales en 11 categorías diferentes
+- 🔒 **Protección de Sistema**: Identifica y bloquea la eliminación de archivos de sistema protegidos o de solo lectura
 - ⚡️ **Limpieza Solo de Caché**: Modo rápido para borrar solo archivos temporales (⇧⌘K)
 - 🖱️ **Drag & Drop**: Simplemente arrastra una app para escanearla
 - � **Historial Reciente**: Acceso rápido a las últimas 10 aplicaciones escaneadas con persistencia
